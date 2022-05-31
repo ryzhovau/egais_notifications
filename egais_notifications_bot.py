@@ -68,7 +68,7 @@ dp = Dispatcher(bot)
 
 @dp.message_handler(content_types = [ContentType.PHOTO, ContentType.DOCUMENT, ContentType.TEXT])
 async def main(message: types.Message):
-
+    
     text = message.text or message.caption
     if not text:
         return
@@ -87,7 +87,11 @@ async def main(message: types.Message):
         elif com.split()[0] == '/list_users':
             await message.answer(f"""Список пользователей: {', '.join([f"{i}" for i in settings['users']])}.""")
         else:
-            users = list(map(int, com[com.find(' ')+1:].strip().lower().split()))
+            try:
+                users = list(map(int, com[com.find(' ')+1:].strip().lower().split()))
+            except:
+                await message.answer("Cтранная команда. Посмотрите справку по админским командам.")
+                return
         if com.split()[0] == '/add_users':
             settings['users'] = list(set(settings['users'] + users))
             await message.answer(f"""Добавил в список пользователей: {', '.join([f"{i}" for i in users])}.""")
@@ -119,7 +123,6 @@ async def main(message: types.Message):
         all_words = text.lower().strip()
         our_users = settings['users']
         for user in our_users:
-
             uwords = set(settings[user]['words'])
             send = False
             for i in uwords:
@@ -130,7 +133,7 @@ async def main(message: types.Message):
             if send:
                 await message.forward(user)
         return
-
+    
     if message.is_forward() and message.forward_from:
         name = ((message.forward_from['first_name'] if message.forward_from['first_name'] else "") + ' ' + (message.forward_from['last_name'] if message.forward_from['last_name'] else "")).strip()
         fid = message.forward_from['id']
@@ -150,14 +153,22 @@ async def main(message: types.Message):
     elif com.split()[0] == '/del':
         if com == '/del': await message.answer("Введите слова, которые нужно удалить!")
         else:
-            words = com[com.find(' ')+1:].strip().lower().split()
-            settings[from_id]['words'] = list(set(settings[from_id]['words']) - set(words))
+            try:
+                words = [i for i in com[com.find(' ')+1:].strip().lower().split() if i]
+            except:
+                await message.answer("Проверьте присланные аргументы.")
+                return
+            settings[from_id]['words'] = list(sorted(set(settings[from_id]['words']) - set(words), key = lambda x: x.lower()))
             await message.answer(f"""Удалил из списка слов: {', '.join([f"'{i}'" for i in words])}.""")
     elif com.split()[0] == '/add':
         if com == '/add': await message.answer("Введите слова, которые нужно добавить!")
         else:
-            words = com[com.find(' ')+1:].strip().lower().split()
-            settings[from_id]['words'] = list(set(settings[from_id]['words'] + words))
+            try:
+                words = [i for i in com[com.find(' ')+1:].strip().lower().split() if i]
+            except:
+                await message.answer("Проверьте присланные аргументы.")
+                return
+            settings[from_id]['words'] = list(sorted(set(settings[from_id]['words'] + words), key = lambda x: x.lower()))
             await message.answer(f"""Добавил в список слов: {', '.join([f"'{i}'" for i in words])}.""")
     elif com.split()[0] == '/list':
         await message.answer(f"""Ваш список слов: {', '.join([f"{i}" for i in settings[from_id]['words']])}.
